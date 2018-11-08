@@ -1,13 +1,16 @@
-import inquirer from "inquirer";
 import program from "commander";
 import { MongoClient } from "mongodb";
-import { countAdmin, register, usernameExists } from "./db";
-
-interface Answers {
-  role: string;
-  username: string;
-  password: string;
-}
+import {
+  countAdmin,
+  register,
+  usernameExists,
+  init,
+  login,
+  User,
+  addBooks,
+  removeBooks,
+} from "./db";
+import { firstQuestion, adminQuestion } from "./questions";
 
 program
   .version("0.1.0")
@@ -19,72 +22,111 @@ program
 
 program.hostname = program.hostname || "localhost";
 program.port = program.port || "27017";
-program.database = program.database || "salary";
+program.database = program.database || "library";
 
 (async function() {
   const { hostname, port, database } = program;
   const uri = `mongodb://${hostname}:${port}/${database}`;
   const conn = await MongoClient.connect(
     uri,
-    { useNewUrlParser: true }
+    { useNewUrlParser: true },
   );
   const db = (await conn).db();
+  await init(db);
 
-  console.log(`[ OK ] Connected to ${uri}`);
-  console.log("[ OK ] Welcome To Salary Management System!");
+  console.log("Welcome To Library Management System!");
 
-  const { role, username, password } = await inquirer.prompt<Answers>([
-    {
-      type: "list",
-      name: "isAdmin",
-      message: "Who are you?",
-      choices: ["Admin", "Employee"],
-      async when() {
-        return (await countAdmin(db)) > 0;
-      }
-    },
+  while (true) {
+    const { action, username, password } = await firstQuestion(db);
 
-    {
-      type: "input",
-      name: "username",
-      message(answers) {
-        if (answers.role) {
-          return "[Login] Username:";
-        } else {
-          return "[Register] Username:";
+    try {
+      switch (action) {
+        case "Sign In": {
+          await loop(await login(db, username, password));
+          break;
         }
-      },
-      async validate(username) {
-        if (!username) {
-          return "Username invalid!";
-        } else {
-          if (await usernameExists(db, username)) {
-            return "Username exists!";
-          }
+        case "Sign Up": {
+          await loop({
+            _id: await register(db, "Student", username, password).then(_id => {
+              console.log(`OK: "${username}" signned up.`);
+              return _id;
+            }),
+            username,
+            role: "Student",
+          });
+          break;
         }
-
-        return true;
-      }
-    },
-    {
-      type: "password",
-      name: "password",
-      message(answers) {
-        if (answers.role) {
-          return "[Login] Password:";
-        } else {
-          return "[Register] Password:";
+        case "Exit":
+          await conn.close();
+          process.exit(0);
+          return;
+        default: {
+          await loop({
+            _id: await register(db, "Admin", username, password).then(_id => {
+              console.log(`OK: "${username}" signned up.`);
+              return _id;
+            }),
+            username,
+            role: "Admin",
+          });
+          break;
         }
-      },
-      validate(password) {
-        return !!password;
       }
+    } catch (e) {
+      console.log(`Error: ${e.message}`);
+      continue;
     }
-  ]);
+  }
 
-  if (role === "Admin") {
-  } else if (role === "Employee") {
-  } else {
-    await register(db, "Admin", username, password);
+  async function loop(user: User) {
+    if (user.role === "Admin") {
+      let answers;
+      do {
+        answers = await adminQuestion();
+        const { bookName, bookISBN, bookCount } = answers;
+        try {
+          switch (answers.cmd) {
+            case "Add books": {
+              if (
+                await addBooks(
+                  db,
+                  user._id,
+                  bookName!,
+                  bookISBN!,
+                  Number(bookCount!),
+                )
+              ) {
+                console.log(`OK: ${bookCount} books added.`);
+                continue;
+              }
+            }
+            case "Remove books": {
+              const [removed, rest] = await removeBooks(
+                db,
+                bookISBN!,
+                Number(bookCount!),
+              );
+              console.log(`OK: ${removed} books removed, ${rest} remain.`);
+              continue;
+            }
+            case "See student info": {
+              console.log("Not yet implemented！");
+            }
+            case "See book info": {
+              console.log("Not yet implemented！");
+            }
+            case "Log out":
+              return;
+          }
+        } catch (e) {
+          console.log(`Error: ${e.message}`);
+          continue;
+        }
+      } while (answers);
+    } else if (user.role === "Student") {
+      while (true) {}
+    } else {
+      return;
+    }
   }
 })();
