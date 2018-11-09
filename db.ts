@@ -17,8 +17,11 @@ export interface Book {
     time: Date;
   }>; // 该书的借还记录
 }
+/**
+ * 注：db均为数据库的实例
+ */
 
-// 初始化数据库
+// 初始化数据库，无返回值
 export async function init(db: Db) {
   await db.createCollection("user");
   await db.createCollection("book");
@@ -37,12 +40,21 @@ export async function init(db: Db) {
   }
 }
 
-// 初始化数据库
+/**
+ * 有多少管理员
+ * @param db
+ * @returns 管理员数量
+ */
 export async function countAdmin(db: Db) {
   return await db.collection("user").countDocuments({ role: "Admin" });
 }
 
-// 判断用户是否存在
+/**
+ * 判断用户是否存在
+ * @param db
+ * @param username
+ * @returns 是或否
+ */
 export async function usernameExists(db: Db, username: string) {
   return (await db.collection("user").countDocuments({ username })) > 0;
 }
@@ -80,10 +92,18 @@ export async function login(db: Db, username: string, password: string) {
   return user;
 }
 
-// 批量添加书籍
+/**
+ * 批量添加书籍
+ * @param db
+ * @param adder // 添加者
+ * @param bookName
+ * @param bookISBN
+ * @param bookCount
+ * @returns 添加了多少书籍
+ */
 export async function addBooks(
   db: Db,
-  adder: ObjectId,
+  adder: ObjectId, // 书籍添加者
   bookName: string,
   bookISBN: string,
   bookCount: number,
@@ -105,7 +125,13 @@ export async function addBooks(
   throw new Error("Unknown Error!");
 }
 
-// 批量移除书籍
+/**
+ * 批量移除书籍
+ * @param db
+ * @param bookISBN 书号
+ * @param bookCount 书记数量
+ * @returns 二元组: (删了的数量, 还剩多少)
+ */
 export async function removeBooks(db: Db, bookISBN: string, bookCount: number) {
   await db
     .collection("book")
@@ -126,7 +152,12 @@ export async function removeBooks(db: Db, bookISBN: string, bookCount: number) {
   return [bookCount, nModified];
 }
 
-// 借书
+/**
+ * 借书
+ * @param db 数据库实例
+ * @param borrower 借书者
+ * @param bookISBN 要借的书
+ */
 export async function borrowBook(db: Db, borrower: ObjectId, bookISBN: string) {
   const { value, ok } = await db.collection<Book>("book").findOneAndUpdate(
     { bookISBN, locked: null, borrower: null },
@@ -145,6 +176,12 @@ export async function borrowBook(db: Db, borrower: ObjectId, bookISBN: string) {
 }
 
 // 还书
+/**
+ *
+ * @param db 数据库实例
+ * @param borrower 还书者
+ * @param bookISBN 书籍isbn
+ */
 export async function returnBook(db: Db, borrower: ObjectId, bookISBN: string) {
   const { value, ok } = await db.collection<Book>("book").findOneAndUpdate(
     { bookISBN, locked: null, borrower },
@@ -162,7 +199,13 @@ export async function returnBook(db: Db, borrower: ObjectId, bookISBN: string) {
   throw new Error("Not borrowed to you!");
 }
 
-// 列出所有我借了的书
+//
+/**
+ * 列出所有我借了的书
+ * @param db 数据库实例
+ * @param borrower 借书人
+ * @returns 书的列表
+ */
 export async function list(db: Db, borrower: ObjectId) {
   return await db
     .collection<Book>("book")
@@ -170,7 +213,13 @@ export async function list(db: Db, borrower: ObjectId) {
     .toArray();
 }
 
-// 学生信息
+//
+/**
+ * 学生信息
+ * @param db
+ * @param username 用户名
+ * @returns 学生信息
+ */
 export async function studentInfo(db: Db, username: string) {
   const userInfo = await db.collection<User>("user").findOne({ username });
   if (userInfo) {
@@ -202,6 +251,14 @@ export async function studentInfo(db: Db, username: string) {
           },
         ])
         .toArray(),
+      // record: 学生借书记录的数组
+      /**
+       * bookName: "$bookName", // 书名
+         bookISBN: "$bookISBN", // 书号
+         operation: "$record.operation", // 操作，借或还
+         operator: "$record.operator", // 操作人
+         time: "$record.time", // 操作时间
+       */
     };
   }
 
@@ -267,5 +324,12 @@ export async function bookInfo(db: Db, bookISBN: string) {
         },
       ])
       .toArray(),
+
+    // record: 学生借书记录的数组
+    /**
+     *   operation: // 类型，借书或者还书
+         username: "$record.operator", // 操作人
+         time: "$record.time", // 操作时间
+       */
   };
 }

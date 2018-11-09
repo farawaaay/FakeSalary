@@ -24,6 +24,7 @@ interface StudentAnswers {
 export const firstQuestion = (db: Db) =>
   inquirer.prompt<FirstAnswer>([
     {
+      // 用户在这里选择进行什么操作
       type: "list",
       name: "action",
       message: "What do you want?",
@@ -33,6 +34,7 @@ export const firstQuestion = (db: Db) =>
       },
     },
     {
+      // 用户输入用户名 登录
       type: "input",
       name: "username",
       message: "[Sign In] Username:",
@@ -40,9 +42,6 @@ export const firstQuestion = (db: Db) =>
         return answers.action === "Sign In";
       },
       async validate(username) {
-        // if (!username) {
-        //   return "Username invalid!";
-        // }
         if (username && !(await usernameExists(db, username))) {
           return "Username not exists!";
         }
@@ -50,17 +49,16 @@ export const firstQuestion = (db: Db) =>
       },
     },
     {
+      // 输入密码 登录
       type: "password",
       name: "password",
       message: "[Sign In] Password:",
       when(answers) {
         return !!answers.username && answers.action === "Sign In";
       },
-      // validate(password) {
-      //   return !!password;
-      // },
     },
     {
+      // 输入用户名 注册
       type: "input",
       name: "username",
       message: "[Sign Up] Username:",
@@ -68,9 +66,6 @@ export const firstQuestion = (db: Db) =>
         return answers.action === "Sign Up";
       },
       async validate(username) {
-        // if (!username) {
-        //   return "Username invalid!";
-        // }
         if (username && (await usernameExists(db, username))) {
           return "Username exists!";
         }
@@ -78,17 +73,16 @@ export const firstQuestion = (db: Db) =>
       },
     },
     {
+      // 输入密码 注册
       type: "password",
       name: "password",
       message: "[Sign Up] Password:",
       when(answers) {
         return !!answers.username && answers.action === "Sign Up";
       },
-      // validate(password) {
-      //   return !!password;
-      // },
     },
     {
+      // 输入用户名 配置系统
       type: "input",
       name: "username",
       message: "[Set Up] Root Username:",
@@ -96,9 +90,6 @@ export const firstQuestion = (db: Db) =>
         return !answers.action;
       },
       async validate(username) {
-        // if (!username) {
-        //   return "Username invalid!";
-        // }
         if (username && (await usernameExists(db, username))) {
           return "Username exists!";
         }
@@ -106,21 +97,20 @@ export const firstQuestion = (db: Db) =>
       },
     },
     {
+      // 输入密码 配置系统
       type: "password",
       name: "password",
       message: "[Set Up] Root Password:",
       when(answers) {
         return !!answers.username && !answers.action;
       },
-      // validate(password) {
-      //   return !!password;
-      // },
     },
   ]);
 
 export const adminQuestion = (db: Db) =>
   inquirer.prompt<AdminAnswers>([
     {
+      // 选择进行何种操作
       type: "list",
       name: "cmd",
       message: "Select what will do:",
@@ -133,6 +123,7 @@ export const adminQuestion = (db: Db) =>
       ],
     },
     {
+      // 输入书名
       type: "input",
       name: "bookName",
       message: "[Add Books] Book Name:",
@@ -141,6 +132,7 @@ export const adminQuestion = (db: Db) =>
       },
     },
     {
+      // 输入书籍的ISBN
       type: "input",
       name: "bookISBN",
       message: "[Add Books] Book ISBN:",
@@ -149,6 +141,7 @@ export const adminQuestion = (db: Db) =>
       },
     },
     {
+      // 输入要添加的书的数量
       type: "input",
       name: "bookCount",
       message: "[Add Books] Book Count:",
@@ -163,6 +156,7 @@ export const adminQuestion = (db: Db) =>
       },
     },
     {
+      // 移除书籍的ISBN
       type: "input",
       name: "bookISBN",
       message: "[Remove Books] Book ISBN:",
@@ -171,6 +165,7 @@ export const adminQuestion = (db: Db) =>
       },
     },
     {
+      // 移除数量
       type: "input",
       name: "bookCount",
       message: "[Remove Books] Book Count:",
@@ -185,6 +180,7 @@ export const adminQuestion = (db: Db) =>
       },
     },
     {
+      // 学生用户名
       type: "input",
       name: "studentUsername",
       message: "[See student info] Student Username:",
@@ -199,6 +195,7 @@ export const adminQuestion = (db: Db) =>
       },
     },
     {
+      // 要查看的书的信息
       type: "input",
       name: "bookISBN",
       message: "[See student info] Book ISBN:",
@@ -211,6 +208,7 @@ export const adminQuestion = (db: Db) =>
 export const studentQuestion = () =>
   inquirer.prompt<StudentAnswers>([
     {
+      // 进行何种操作
       type: "list",
       name: "cmd",
       message: "Select what will do:",
