@@ -1,11 +1,13 @@
 import { Db, ObjectId } from "mongodb";
 
+// 用户的结构
 export interface User {
   _id: ObjectId; // unique ID
   username: string; // 用户名
   role: "Admin" | "Student"; // 用户类型，可以是管理员或者普通学生
 }
 
+// 书的结构
 export interface Book {
   _id: ObjectId; // unique id
   bookName: string; // 书名
@@ -59,7 +61,14 @@ export async function usernameExists(db: Db, username: string) {
   return (await db.collection("user").countDocuments({ username })) > 0;
 }
 
-// 注册一个用户
+/**
+ * 注册一个用户
+ * @param db
+ * @param role
+ * @param username
+ * @param password
+ * @returns 用户ID
+ */
 export async function register(
   db: Db,
   role: "Admin" | "Student",
@@ -80,7 +89,14 @@ export async function register(
   }
 }
 
-// 登录这个系统
+//
+/**
+ * 登录这个系统
+ * @param db
+ * @param username
+ * @param password
+ * @returns 用户结构体
+ */
 export async function login(db: Db, username: string, password: string) {
   const user = await db
     .collection<User>("user")
