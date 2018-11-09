@@ -40,10 +40,10 @@ export const firstQuestion = (db: Db) =>
         return answers.action === "Sign In";
       },
       async validate(username) {
-        if (!username) {
-          return "Username invalid!";
-        }
-        if (!(await usernameExists(db, username))) {
+        // if (!username) {
+        //   return "Username invalid!";
+        // }
+        if (username && !(await usernameExists(db, username))) {
           return "Username not exists!";
         }
         return true;
@@ -54,11 +54,11 @@ export const firstQuestion = (db: Db) =>
       name: "password",
       message: "[Sign In] Password:",
       when(answers) {
-        return answers.action === "Sign In";
+        return !!answers.username && answers.action === "Sign In";
       },
-      validate(password) {
-        return !!password;
-      },
+      // validate(password) {
+      //   return !!password;
+      // },
     },
     {
       type: "input",
@@ -68,10 +68,10 @@ export const firstQuestion = (db: Db) =>
         return answers.action === "Sign Up";
       },
       async validate(username) {
-        if (!username) {
-          return "Username invalid!";
-        }
-        if (await usernameExists(db, username)) {
+        // if (!username) {
+        //   return "Username invalid!";
+        // }
+        if (username && (await usernameExists(db, username))) {
           return "Username exists!";
         }
         return true;
@@ -82,11 +82,11 @@ export const firstQuestion = (db: Db) =>
       name: "password",
       message: "[Sign Up] Password:",
       when(answers) {
-        return answers.action === "Sign Up";
+        return !!answers.username && answers.action === "Sign Up";
       },
-      validate(password) {
-        return !!password;
-      },
+      // validate(password) {
+      //   return !!password;
+      // },
     },
     {
       type: "input",
@@ -96,10 +96,10 @@ export const firstQuestion = (db: Db) =>
         return !answers.action;
       },
       async validate(username) {
-        if (!username) {
-          return "Username invalid!";
-        }
-        if (await usernameExists(db, username)) {
+        // if (!username) {
+        //   return "Username invalid!";
+        // }
+        if (username && (await usernameExists(db, username))) {
           return "Username exists!";
         }
         return true;
@@ -110,11 +110,11 @@ export const firstQuestion = (db: Db) =>
       name: "password",
       message: "[Set Up] Root Password:",
       when(answers) {
-        return !answers.action;
+        return !!answers.username && !answers.action;
       },
-      validate(password) {
-        return !!password;
-      },
+      // validate(password) {
+      //   return !!password;
+      // },
     },
   ]);
 
@@ -145,7 +145,7 @@ export const adminQuestion = (db: Db) =>
       name: "bookISBN",
       message: "[Add Books] Book ISBN:",
       when(answers) {
-        return answers.cmd === "Add books";
+        return !!answers.bookName && answers.cmd === "Add books";
       },
     },
     {
@@ -153,9 +153,12 @@ export const adminQuestion = (db: Db) =>
       name: "bookCount",
       message: "[Add Books] Book Count:",
       when(answers) {
-        return answers.cmd === "Add books";
+        return !!answers.bookISBN && answers.cmd === "Add books";
       },
       validate(count) {
+        if (!count) {
+          return true;
+        }
         return isNaN(count) ? "Book count invalid!" : true;
       },
     },
@@ -172,9 +175,12 @@ export const adminQuestion = (db: Db) =>
       name: "bookCount",
       message: "[Remove Books] Book Count:",
       when(answers) {
-        return answers.cmd === "Remove books";
+        return !!answers.bookISBN && answers.cmd === "Remove books";
       },
       validate(count) {
+        if (!count) {
+          return true;
+        }
         return isNaN(count) ? "Book count invalid!" : true;
       },
     },
@@ -186,7 +192,7 @@ export const adminQuestion = (db: Db) =>
         return answers.cmd === "See student info";
       },
       async validate(username) {
-        if (!(await usernameExists(db, username))) {
+        if (username && !(await usernameExists(db, username))) {
           return "User not exists!";
         }
         return true;

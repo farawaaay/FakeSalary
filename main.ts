@@ -47,6 +47,15 @@ program.database = program.database || "library";
   // 等待用户选择登录、注册、退出中的一个
   while (true) {
     const { action, username, password } = await firstQuestion(db);
+    if (action === "Exit") {
+      // 退出
+      await conn.close();
+      process.exit(0);
+      return;
+    }
+    if (!username || !password) {
+      continue;
+    }
     try {
       switch (action) {
         // 登录时
@@ -71,11 +80,6 @@ program.database = program.database || "library";
           });
           break;
         }
-        case "Exit":
-          // 退出
-          await conn.close();
-          process.exit(0);
-          return;
         default: {
           // 默认情况下，设为配置该系统，设置管理员账号和密码
           await loop({
@@ -105,6 +109,9 @@ program.database = program.database || "library";
           switch (answers.cmd) {
             // 添加书籍
             case "Add books": {
+              if (!bookName || !bookISBN || !bookCount) {
+                continue;
+              }
               if (
                 await addBooks(
                   db,
@@ -120,6 +127,9 @@ program.database = program.database || "library";
             }
             // 移除书籍
             case "Remove books": {
+              if (!bookISBN || !bookCount) {
+                continue;
+              }
               const [removed, rest] = await removeBooks(
                 db,
                 bookISBN!,
@@ -130,6 +140,9 @@ program.database = program.database || "library";
             }
             // 查看学生信息
             case "See student info": {
+              if (!studentUsername) {
+                continue;
+              }
               const { username, role, record } = await studentInfo(
                 db,
                 studentUsername!,
@@ -158,6 +171,9 @@ program.database = program.database || "library";
             }
             // 查看书籍信息
             case "See book info": {
+              if (!bookISBN) {
+                continue;
+              }
               const { borrowed, all, record, bookName } = await bookInfo(
                 db,
                 bookISBN!,
@@ -237,6 +253,9 @@ program.database = program.database || "library";
             }
             // 借书
             case "Borrow book": {
+              if (!bookISBN) {
+                continue;
+              }
               const book = await borrowBook(db, user._id, bookISBN);
               if (book) {
                 console.log(`OK: You borrowed "${book.bookName}" just now.`);
@@ -245,6 +264,9 @@ program.database = program.database || "library";
             }
             // 还书
             case "Return book": {
+              if (!bookISBN) {
+                continue;
+              }
               const book = await returnBook(db, user._id, bookISBN);
               if (book) {
                 console.log(`OK: You returned "${book.bookName}" just now.`);
