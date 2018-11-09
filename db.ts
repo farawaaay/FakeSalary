@@ -1,23 +1,24 @@
 import { Db, ObjectId } from "mongodb";
 
 export interface User {
-  _id: ObjectId;
-  username: string;
-  role: "Admin" | "Student";
+  _id: ObjectId; // unique ID
+  username: string; // 用户名
+  role: "Admin" | "Student"; // 用户类型，可以是管理员或者普通学生
 }
 
 export interface Book {
-  _id: ObjectId;
-  bookName: string;
-  bookISBN: string;
-  borrower: ObjectId;
+  _id: ObjectId; // unique id
+  bookName: string; // 书名
+  bookISBN: string; // 书的ISBN号
+  borrower: ObjectId; // 借书人
   record: Array<{
     operation: "borrow" | "return";
     operator: ObjectId;
     time: Date;
-  }>;
+  }>; // 该书的借还记录
 }
 
+// 初始化数据库
 export async function init(db: Db) {
   await db.createCollection("user");
   await db.createCollection("book");
@@ -36,14 +37,17 @@ export async function init(db: Db) {
   }
 }
 
+// 初始化数据库
 export async function countAdmin(db: Db) {
   return await db.collection("user").countDocuments({ role: "Admin" });
 }
 
+// 判断用户是否存在
 export async function usernameExists(db: Db, username: string) {
   return (await db.collection("user").countDocuments({ username })) > 0;
 }
 
+// 注册一个用户
 export async function register(
   db: Db,
   role: "Admin" | "Student",
@@ -64,6 +68,7 @@ export async function register(
   }
 }
 
+// 登录这个系统
 export async function login(db: Db, username: string, password: string) {
   const user = await db
     .collection<User>("user")
@@ -75,6 +80,7 @@ export async function login(db: Db, username: string, password: string) {
   return user;
 }
 
+// 批量添加书籍
 export async function addBooks(
   db: Db,
   adder: ObjectId,
@@ -99,6 +105,7 @@ export async function addBooks(
   throw new Error("Unknown Error!");
 }
 
+// 批量移除书籍
 export async function removeBooks(db: Db, bookISBN: string, bookCount: number) {
   await db
     .collection("book")
@@ -119,6 +126,7 @@ export async function removeBooks(db: Db, bookISBN: string, bookCount: number) {
   return [bookCount, nModified];
 }
 
+// 借书
 export async function borrowBook(db: Db, borrower: ObjectId, bookISBN: string) {
   const { value, ok } = await db.collection<Book>("book").findOneAndUpdate(
     { bookISBN, locked: null, borrower: null },
@@ -136,6 +144,7 @@ export async function borrowBook(db: Db, borrower: ObjectId, bookISBN: string) {
   throw new Error("Book not found!");
 }
 
+// 还书
 export async function returnBook(db: Db, borrower: ObjectId, bookISBN: string) {
   const { value, ok } = await db.collection<Book>("book").findOneAndUpdate(
     { bookISBN, locked: null, borrower },
@@ -153,6 +162,7 @@ export async function returnBook(db: Db, borrower: ObjectId, bookISBN: string) {
   throw new Error("Not borrowed to you!");
 }
 
+// 列出所有我借了的书
 export async function list(db: Db, borrower: ObjectId) {
   return await db
     .collection<Book>("book")
@@ -160,6 +170,7 @@ export async function list(db: Db, borrower: ObjectId) {
     .toArray();
 }
 
+// 学生信息
 export async function studentInfo(db: Db, username: string) {
   const userInfo = await db.collection<User>("user").findOne({ username });
   if (userInfo) {
@@ -197,6 +208,7 @@ export async function studentInfo(db: Db, username: string) {
   throw new Error("No user found!");
 }
 
+// 书籍信息
 export async function bookInfo(db: Db, bookISBN: string) {
   const book = await db
     .collection<Book>("book")

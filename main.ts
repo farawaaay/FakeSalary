@@ -30,6 +30,7 @@ program.port = program.port || "4001";
 program.database = program.database || "library";
 
 (async function() {
+  // 链接数据库
   const { hostname, port, database } = program;
   const uri = `mongodb://${hostname}:${port}/${database}`;
   const conn = await MongoClient.connect(
@@ -37,15 +38,18 @@ program.database = program.database || "library";
     { useNewUrlParser: true },
   );
   const db = (await conn).db();
+
+  // 初始化数据库
   await init(db);
 
   console.log("Welcome To Library Management System!");
 
+  // 等待用户选择登录、注册、退出中的一个
   while (true) {
     const { action, username, password } = await firstQuestion(db);
-
     try {
       switch (action) {
+        // 登录时
         case "Sign In": {
           await loop(
             await login(db, username, password).then(user => {
@@ -56,6 +60,7 @@ program.database = program.database || "library";
           break;
         }
         case "Sign Up": {
+          // 注册时
           await loop({
             _id: await register(db, "Student", username, password).then(_id => {
               console.log(`OK: "${username}" signned up.`);
@@ -67,10 +72,12 @@ program.database = program.database || "library";
           break;
         }
         case "Exit":
+          // 退出
           await conn.close();
           process.exit(0);
           return;
         default: {
+          // 默认情况下，设为配置该系统，设置管理员账号和密码
           await loop({
             _id: await register(db, "Admin", username, password).then(_id => {
               console.log(`OK: "${username}" signned up.`);
@@ -96,6 +103,7 @@ program.database = program.database || "library";
         const { bookName, bookISBN, bookCount, studentUsername } = answers;
         try {
           switch (answers.cmd) {
+            // 添加书籍
             case "Add books": {
               if (
                 await addBooks(
@@ -110,6 +118,7 @@ program.database = program.database || "library";
                 continue;
               }
             }
+            // 移除书籍
             case "Remove books": {
               const [removed, rest] = await removeBooks(
                 db,
@@ -119,6 +128,7 @@ program.database = program.database || "library";
               console.log(`OK: ${removed} books removed, ${rest} remain.`);
               continue;
             }
+            // 查看学生信息
             case "See student info": {
               const { username, role, record } = await studentInfo(
                 db,
@@ -146,6 +156,7 @@ program.database = program.database || "library";
               );
               break;
             }
+            // 查看书籍信息
             case "See book info": {
               const { borrowed, all, record, bookName } = await bookInfo(
                 db,
@@ -171,6 +182,7 @@ program.database = program.database || "library";
               );
               break;
             }
+            // 退出登录
             case "Log out":
               return;
           }
@@ -186,6 +198,7 @@ program.database = program.database || "library";
         const { cmd, bookISBN } = answers;
         try {
           switch (cmd) {
+            // 列出所有我的书籍
             case "List books I borrowed": {
               const data = (await list(db, user._id)).map(
                 ({ bookName, bookISBN, record }, i) => {
@@ -222,6 +235,7 @@ program.database = program.database || "library";
               );
               break;
             }
+            // 借书
             case "Borrow book": {
               const book = await borrowBook(db, user._id, bookISBN);
               if (book) {
@@ -229,6 +243,7 @@ program.database = program.database || "library";
               }
               break;
             }
+            // 还书
             case "Return book": {
               const book = await returnBook(db, user._id, bookISBN);
               if (book) {
@@ -236,6 +251,7 @@ program.database = program.database || "library";
               }
               break;
             }
+            // 登出
             case "Log out": {
               return;
             }

@@ -1,5 +1,5 @@
 import inquirer from "inquirer";
-import { Db, ObjectId } from "mongodb";
+import { Db } from "mongodb";
 import { countAdmin, usernameExists } from "./db";
 
 interface FirstAnswer {
