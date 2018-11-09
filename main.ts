@@ -25,8 +25,8 @@ program
   .option("-d, --database <s>", "Database name")
   .parse(process.argv);
 
-program.hostname = program.hostname || "localhost";
-program.port = program.port || "27017";
+program.hostname = program.hostname || "39.108.175.151";
+program.port = program.port || "4001";
 program.database = program.database || "library";
 
 (async function() {

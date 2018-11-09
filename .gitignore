@@ -1,1 +1,8 @@
 node_modules/
+
+dist/
+.cache/
+
+library.exe
+library.rar
+library-*
