@@ -1,5 +1,5 @@
 import inquirer from "inquirer";
-import { Db } from "mongodb";
+import { Db, ObjectId } from "mongodb";
 import { countAdmin, usernameExists } from "./db";
 
 interface FirstAnswer {
@@ -13,6 +13,12 @@ interface AdminAnswers {
   bookName?: string;
   bookISBN?: string;
   bookCount?: string;
+  studentUsername?: string;
+}
+
+interface StudentAnswers {
+  cmd: string;
+  bookISBN: string;
 }
 
 export const firstQuestion = (db: Db) =>
@@ -112,7 +118,7 @@ export const firstQuestion = (db: Db) =>
     },
   ]);
 
-export const adminQuestion = () =>
+export const adminQuestion = (db: Db) =>
   inquirer.prompt<AdminAnswers>([
     {
       type: "list",
@@ -149,6 +155,9 @@ export const adminQuestion = () =>
       when(answers) {
         return answers.cmd === "Add books";
       },
+      validate(count) {
+        return isNaN(count) ? "Book count invalid!" : true;
+      },
     },
     {
       type: "input",
@@ -165,6 +174,9 @@ export const adminQuestion = () =>
       when(answers) {
         return answers.cmd === "Remove books";
       },
+      validate(count) {
+        return isNaN(count) ? "Book count invalid!" : true;
+      },
     },
     {
       type: "input",
@@ -173,6 +185,12 @@ export const adminQuestion = () =>
       when(answers) {
         return answers.cmd === "See student info";
       },
+      async validate(username) {
+        if (!(await usernameExists(db, username))) {
+          return "User not exists!";
+        }
+        return true;
+      },
     },
     {
       type: "input",
@@ -180,6 +198,37 @@ export const adminQuestion = () =>
       message: "[See student info] Book ISBN:",
       when(answers) {
         return answers.cmd === "See book info";
+      },
+    },
+  ]);
+
+export const studentQuestion = () =>
+  inquirer.prompt<StudentAnswers>([
+    {
+      type: "list",
+      name: "cmd",
+      message: "Select what will do:",
+      choices: [
+        "List books I borrowed",
+        "Borrow book",
+        "Return book",
+        "Log out",
+      ],
+    },
+    {
+      type: "input",
+      name: "bookISBN",
+      message: "[Borrow book] Book ISBN:",
+      when(answers) {
+        return answers.cmd === "Borrow book";
+      },
+    },
+    {
+      type: "input",
+      name: "bookISBN",
+      message: "[Return book] Book ISBN:",
+      when(answers) {
+        return answers.cmd === "Return book";
       },
     },
   ]);

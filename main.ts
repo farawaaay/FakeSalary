@@ -1,16 +1,21 @@
 import program from "commander";
 import { MongoClient } from "mongodb";
+import { table, getBorderCharacters } from "table";
+
 import {
-  countAdmin,
   register,
-  usernameExists,
   init,
   login,
   User,
   addBooks,
   removeBooks,
+  list,
+  borrowBook,
+  returnBook,
+  studentInfo,
+  bookInfo,
 } from "./db";
-import { firstQuestion, adminQuestion } from "./questions";
+import { firstQuestion, adminQuestion, studentQuestion } from "./questions";
 
 program
   .version("0.1.0")
@@ -42,7 +47,12 @@ program.database = program.database || "library";
     try {
       switch (action) {
         case "Sign In": {
-          await loop(await login(db, username, password));
+          await loop(
+            await login(db, username, password).then(user => {
+              console.log(`Ok: "${username}" logged in.`);
+              return user;
+            }),
+          );
           break;
         }
         case "Sign Up": {
@@ -82,8 +92,8 @@ program.database = program.database || "library";
     if (user.role === "Admin") {
       let answers;
       do {
-        answers = await adminQuestion();
-        const { bookName, bookISBN, bookCount } = answers;
+        answers = await adminQuestion(db);
+        const { bookName, bookISBN, bookCount, studentUsername } = answers;
         try {
           switch (answers.cmd) {
             case "Add books": {
@@ -110,10 +120,56 @@ program.database = program.database || "library";
               continue;
             }
             case "See student info": {
-              console.log("Not yet implemented！");
+              const { username, role, record } = await studentInfo(
+                db,
+                studentUsername!,
+              );
+
+              console.log(`Username: ${username}, Role: ${role}`);
+              console.log(`Borrow & Return Records:`);
+              console.log(
+                table(
+                  [
+                    ["No.", "Book Name", "Book ISBN", "Operation", "Time"],
+                    ...record.map(
+                      ({ bookName, bookISBN, operation, time }, i) => [
+                        i + 1,
+                        bookName,
+                        bookISBN,
+                        operation,
+                        time.toLocaleString(),
+                      ],
+                    ),
+                  ],
+                  { border: getBorderCharacters("norc") },
+                ),
+              );
+              break;
             }
             case "See book info": {
-              console.log("Not yet implemented！");
+              const { borrowed, all, record, bookName } = await bookInfo(
+                db,
+                bookISBN!,
+              );
+              console.log(
+                `Book Name: ${bookName}, Amount: ${all}, Borrowed: ${borrowed}`,
+              );
+              console.log(`Borrow & Return Records:`);
+              console.log(
+                table(
+                  [
+                    ["No.", "Username", "Operation", "Time"],
+                    ...record.map(({ username, operation, time }, i) => [
+                      i + 1,
+                      username,
+                      operation,
+                      time.toLocaleString(),
+                    ]),
+                  ],
+                  { border: getBorderCharacters("norc") },
+                ),
+              );
+              break;
             }
             case "Log out":
               return;
@@ -124,7 +180,70 @@ program.database = program.database || "library";
         }
       } while (answers);
     } else if (user.role === "Student") {
-      while (true) {}
+      let answers;
+      do {
+        answers = await studentQuestion();
+        const { cmd, bookISBN } = answers;
+        try {
+          switch (cmd) {
+            case "List books I borrowed": {
+              const data = (await list(db, user._id)).map(
+                ({ bookName, bookISBN, record }, i) => {
+                  const { time } = record.reverse().find(record => {
+                    if (record.operation === "borrow") {
+                      return record.operator.equals(user._id);
+                    }
+                    return false;
+                  })!;
+                  return [
+                    i + 1,
+                    bookName,
+                    bookISBN,
+                    time.toLocaleString(),
+                    new Date(+time + 1000 * 3600 * 24 * 30).toLocaleString(),
+                  ];
+                },
+              );
+              if (data.length <= 0) {
+                console.log("Error: You havn't borrowed book yet!");
+                break;
+              }
+              data.unshift([
+                "No.",
+                "Book Name",
+                "Book ISBN",
+                "Borrowed Time",
+                "Return DDL",
+              ]);
+              console.log(
+                table(data, {
+                  border: getBorderCharacters("norc"),
+                }),
+              );
+              break;
+            }
+            case "Borrow book": {
+              const book = await borrowBook(db, user._id, bookISBN);
+              if (book) {
+                console.log(`OK: You borrowed "${book.bookName}" just now.`);
+              }
+              break;
+            }
+            case "Return book": {
+              const book = await returnBook(db, user._id, bookISBN);
+              if (book) {
+                console.log(`OK: You returned "${book.bookName}" just now.`);
+              }
+              break;
+            }
+            case "Log out": {
+              return;
+            }
+          }
+        } catch (e) {
+          console.log(`Error: ${e.message}`);
+        }
+      } while (answers);
     } else {
       return;
     }
